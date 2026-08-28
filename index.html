@@ -346,7 +346,7 @@
     }
 
     .respuesta-lista li {
-      margin-bottom: 7px;
+      margin-bottom: 9px;
       line-height: 1.5;
     }
 
@@ -1133,98 +1133,92 @@
   function formatearRespuestaBot(contenedor, texto) {
 
     let limpio = String(texto || "")
-      .replace(/\r/g, "")
-      .replace(/\s*•\s*/g, "\n• ")
-      .replace(/\s*(Dato relevante:)/gi, "\n\n$1")
-      .replace(/\s*(Fuente:)/gi, "\n\n$1")
-      .replace(/\n{3,}/g, "\n\n")
+      .replace(/\r/g, " ")
+      .replace(/\n+/g, " ")
+      .replace(/\s+/g, " ")
       .trim();
 
-    const bloques = limpio
-      .split(/\n\s*\n/)
-      .map(b => b.trim())
+    let fuente = "";
+    let dato = "";
+
+    const matchFuente = limpio.match(/\bFuente:\s*(.+)$/i);
+    if (matchFuente) {
+      fuente = matchFuente[1].trim();
+      limpio = limpio.slice(0, matchFuente.index).trim();
+    }
+
+    const matchDato = limpio.match(/\bDato relevante:\s*(.+)$/i);
+    if (matchDato) {
+      dato = matchDato[1].trim();
+      limpio = limpio.slice(0, matchDato.index).trim();
+    }
+
+    const partes = limpio
+      .split(/\s*•\s*/)
+      .map(p => p.trim())
       .filter(Boolean);
 
-    bloques.forEach((bloque) => {
+    if (partes.length > 1) {
 
-      if (/^Dato relevante:/i.test(bloque)) {
+      const tituloTexto = partes.shift();
 
-        const div = document.createElement("div");
-        div.className = "respuesta-dato";
-
-        const etiqueta = document.createElement("span");
-        etiqueta.className = "respuesta-etiqueta";
-        etiqueta.textContent = "Dato relevante: ";
-
-        const contenidoDato = document.createElement("span");
-        contenidoDato.textContent =
-          bloque.replace(/^Dato relevante:\s*/i, "");
-
-        div.appendChild(etiqueta);
-        div.appendChild(contenidoDato);
-        contenedor.appendChild(div);
-        return;
+      if (tituloTexto) {
+        const titulo = document.createElement("div");
+        titulo.className = "respuesta-titulo";
+        titulo.textContent = tituloTexto;
+        contenedor.appendChild(titulo);
       }
 
-      if (/^Fuente:/i.test(bloque)) {
+      const ul = document.createElement("ul");
+      ul.className = "respuesta-lista";
 
-        const div = document.createElement("div");
-        div.className = "respuesta-fuente";
+      partes.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        ul.appendChild(li);
+      });
 
-        const etiqueta = document.createElement("span");
-        etiqueta.className = "respuesta-etiqueta";
-        etiqueta.textContent = "Fuente: ";
+      contenedor.appendChild(ul);
 
-        const contenidoFuente = document.createElement("span");
-        contenidoFuente.textContent =
-          bloque.replace(/^Fuente:\s*/i, "");
-
-        div.appendChild(etiqueta);
-        div.appendChild(contenidoFuente);
-        contenedor.appendChild(div);
-        return;
-      }
-
-      const lineas = bloque
-        .split("\n")
-        .map(l => l.trim())
-        .filter(Boolean);
-
-      const items = lineas.filter(l => l.startsWith("•"));
-
-      if (items.length > 0) {
-
-        const primera = lineas[0];
-        const tieneTitulo = !primera.startsWith("•");
-
-        if (tieneTitulo) {
-          const titulo = document.createElement("div");
-          titulo.className = "respuesta-titulo";
-          titulo.textContent = primera;
-          contenedor.appendChild(titulo);
-        }
-
-        const ul = document.createElement("ul");
-        ul.className = "respuesta-lista";
-
-        const desde = tieneTitulo ? 1 : 0;
-
-        lineas.slice(desde).forEach((linea) => {
-          const li = document.createElement("li");
-          li.textContent = linea.replace(/^•\s*/, "");
-          ul.appendChild(li);
-        });
-
-        contenedor.appendChild(ul);
-        return;
-      }
+    } else {
 
       const parrafo = document.createElement("div");
-      parrafo.style.marginBottom = "8px";
       parrafo.style.lineHeight = "1.5";
-      parrafo.textContent = bloque;
+      parrafo.textContent = limpio;
       contenedor.appendChild(parrafo);
-    });
+    }
+
+    if (dato) {
+      const divDato = document.createElement("div");
+      divDato.className = "respuesta-dato";
+
+      const etiquetaDato = document.createElement("span");
+      etiquetaDato.className = "respuesta-etiqueta";
+      etiquetaDato.textContent = "Dato relevante: ";
+
+      const textoDato = document.createElement("span");
+      textoDato.textContent = dato;
+
+      divDato.appendChild(etiquetaDato);
+      divDato.appendChild(textoDato);
+      contenedor.appendChild(divDato);
+    }
+
+    if (fuente) {
+      const divFuente = document.createElement("div");
+      divFuente.className = "respuesta-fuente";
+
+      const etiquetaFuente = document.createElement("span");
+      etiquetaFuente.className = "respuesta-etiqueta";
+      etiquetaFuente.textContent = "Fuente: ";
+
+      const textoFuente = document.createElement("span");
+      textoFuente.textContent = fuente;
+
+      divFuente.appendChild(etiquetaFuente);
+      divFuente.appendChild(textoFuente);
+      contenedor.appendChild(divFuente);
+    }
   }
 
 
