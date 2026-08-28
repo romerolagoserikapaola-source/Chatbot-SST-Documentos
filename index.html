@@ -304,7 +304,7 @@
 
       line-height: 1.55;
 
-      white-space: normal;
+      white-space: pre-wrap;
 
       box-shadow:
         0 5px 18px rgba(0,0,0,0.055);
@@ -322,6 +322,53 @@
       color: var(--texto);
 
       border-top-left-radius: 5px;
+    }
+
+
+    /* =========================
+       FORMATO RESPUESTAS FLOWA
+    ========================= */
+
+    .respuesta-contenido {
+      white-space: normal;
+    }
+
+    .respuesta-titulo {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 10px;
+      line-height: 1.35;
+    }
+
+    .respuesta-lista {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .respuesta-lista li {
+      margin-bottom: 7px;
+      line-height: 1.5;
+    }
+
+    .respuesta-lista li:last-child {
+      margin-bottom: 0;
+    }
+
+    .respuesta-dato,
+    .respuesta-fuente {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #d9d9d9;
+      line-height: 1.5;
+    }
+
+    .respuesta-etiqueta {
+      font-weight: 700;
+    }
+
+    .respuesta-fuente {
+      color: #555;
+      font-size: 14px;
     }
 
 
@@ -1078,6 +1125,109 @@
   }
 
 
+
+  /* =========================================
+     FORMATEAR RESPUESTA DE FLOWA
+  ========================================= */
+
+  function formatearRespuestaBot(contenedor, texto) {
+
+    let limpio = String(texto || "")
+      .replace(/\r/g, "")
+      .replace(/\s*•\s*/g, "\n• ")
+      .replace(/\s*(Dato relevante:)/gi, "\n\n$1")
+      .replace(/\s*(Fuente:)/gi, "\n\n$1")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    const bloques = limpio
+      .split(/\n\s*\n/)
+      .map(b => b.trim())
+      .filter(Boolean);
+
+    bloques.forEach((bloque) => {
+
+      if (/^Dato relevante:/i.test(bloque)) {
+
+        const div = document.createElement("div");
+        div.className = "respuesta-dato";
+
+        const etiqueta = document.createElement("span");
+        etiqueta.className = "respuesta-etiqueta";
+        etiqueta.textContent = "Dato relevante: ";
+
+        const contenidoDato = document.createElement("span");
+        contenidoDato.textContent =
+          bloque.replace(/^Dato relevante:\s*/i, "");
+
+        div.appendChild(etiqueta);
+        div.appendChild(contenidoDato);
+        contenedor.appendChild(div);
+        return;
+      }
+
+      if (/^Fuente:/i.test(bloque)) {
+
+        const div = document.createElement("div");
+        div.className = "respuesta-fuente";
+
+        const etiqueta = document.createElement("span");
+        etiqueta.className = "respuesta-etiqueta";
+        etiqueta.textContent = "Fuente: ";
+
+        const contenidoFuente = document.createElement("span");
+        contenidoFuente.textContent =
+          bloque.replace(/^Fuente:\s*/i, "");
+
+        div.appendChild(etiqueta);
+        div.appendChild(contenidoFuente);
+        contenedor.appendChild(div);
+        return;
+      }
+
+      const lineas = bloque
+        .split("\n")
+        .map(l => l.trim())
+        .filter(Boolean);
+
+      const items = lineas.filter(l => l.startsWith("•"));
+
+      if (items.length > 0) {
+
+        const primera = lineas[0];
+        const tieneTitulo = !primera.startsWith("•");
+
+        if (tieneTitulo) {
+          const titulo = document.createElement("div");
+          titulo.className = "respuesta-titulo";
+          titulo.textContent = primera;
+          contenedor.appendChild(titulo);
+        }
+
+        const ul = document.createElement("ul");
+        ul.className = "respuesta-lista";
+
+        const desde = tieneTitulo ? 1 : 0;
+
+        lineas.slice(desde).forEach((linea) => {
+          const li = document.createElement("li");
+          li.textContent = linea.replace(/^•\s*/, "");
+          ul.appendChild(li);
+        });
+
+        contenedor.appendChild(ul);
+        return;
+      }
+
+      const parrafo = document.createElement("div");
+      parrafo.style.marginBottom = "8px";
+      parrafo.style.lineHeight = "1.5";
+      parrafo.textContent = bloque;
+      contenedor.appendChild(parrafo);
+    });
+  }
+
+
   /* =========================================
      AGREGAR MENSAJE
   ========================================= */
@@ -1154,9 +1304,15 @@
         "div"
       );
 
+    contenido.className =
+      "respuesta-contenido";
 
-    contenido.textContent =
-      texto;
+
+    if (tipo === "bot") {
+      formatearRespuestaBot(contenido, texto);
+    } else {
+      contenido.textContent = texto;
+    }
 
 
     const hora =
